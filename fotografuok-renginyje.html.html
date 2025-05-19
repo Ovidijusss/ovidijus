@@ -1,0 +1,68 @@
+
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fotografuok renginyje</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 20px; }
+    video, canvas { max-width: 100%; height: auto; border-radius: 10px; margin-bottom: 10px; }
+    button { padding: 10px 20px; font-size: 16px; margin-top: 10px; border-radius: 8px; border: none; background: #28a745; color: white; cursor: pointer; }
+    #counter { margin-top: 10px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>Fotografuok renginyje</h2>
+  <video id="video" autoplay playsinline></video><br />
+  <button id="snap">Fotografuoti</button>
+  <div id="counter">Liko nuotraukų: 10</div>
+  <canvas id="canvas" style="display: none;"></canvas>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const snapButton = document.getElementById('snap');
+    const counter = document.getElementById('counter');
+    let remaining = 10;
+
+    // Start camera
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+      });
+
+    snapButton.addEventListener('click', () => {
+      if (remaining <= 0) {
+        alert('Jūs jau pasiekėte 10 nuotraukų limitą.');
+        return;
+      }
+
+      const context = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg');
+      const base64 = dataUrl.split(',')[1];
+
+      fetch("https://script.google.com/macros/s/AKfycbwVFTsJxIYnmqZDjznKmCX8MTSnlbG6-3YWRufXQs-QfbIvRF2JYo4_Mn6ayHSumk4u7A/exec", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `file=${encodeURIComponent(base64)}&type=image/jpeg`
+      })
+      .then(response => response.text())
+      .then(text => {
+        if (text === 'OK') {
+          remaining--;
+          counter.innerText = `Liko nuotraukų: ${remaining}`;
+        } else {
+          alert('Įkėlimas nepavyko: ' + text);
+        }
+      })
+      .catch(err => {
+        alert('Klaida siunčiant: ' + err);
+      });
+    });
+  </script>
+</body>
+</html>
